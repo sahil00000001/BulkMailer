@@ -1,0 +1,162 @@
+🚀 Project Title: Gmail Bulk Mail Sender using NodeMailer & Excel Upload
+🧠 Project Objective:
+To build a smooth, efficient, and elegant Node.js-based bulk mailing tool using NodeMailer that sends personalized emails to Gmail users via Excel upload, tracks the status of emails, and provides a report summary — all within a sleek and user-friendly UI.
+
+🔧 Core Technologies:
+Backend: Node.js, NodeMailer, Express
+
+Frontend: ReactJS / HTML + CSS + JS (your choice), Bootstrap/Tailwind (for styling)
+
+Excel Handling: xlsx or exceljs for parsing Excel files
+
+Email: NodeMailer (strictly using Gmail)
+
+UI Animation: CSS animations or React animation libraries
+
+📥 User Flow and Functional Features:
+Input Form (Initial Screen)
+
+Ask user for:
+
+Full Name
+
+Email ID (only Gmail – validate @gmail.com)
+
+Password
+
+Password Field Tooltip:
+
+On hover, display a styled tooltip article (not a video) that includes a brief article explaining how to create and enable an App Password in Gmail with steps and images.
+
+Tooltip content to be a small modal/article-style hover popover.
+
+Validation:
+
+Ensure Gmail ID.
+
+Basic form validation (required fields, format, etc.)
+
+Excel Upload:
+
+Accept .xlsx files.
+
+Sample Excel File Download option with structure:
+
+Name	Email	Designation	Company
+Sahil	sahil@gmail.com	Software Developer	Fortek
+
+After upload, parse the file and show the data in a beautiful, clean UI table with the following columns:
+
+Name
+
+Email
+
+Designation
+
+Company Name
+
+Status (new column)
+
+Status is a toggle UI:
+
+❌ Square Box (default) → 🟩 ✅ Green Tick (on success)
+
+With a smooth animation transforming ❌ → ✅ when mail is sent.
+
+Email Sending Logic:
+
+Use NodeMailer with the Gmail credentials provided.
+
+Use a centralized email template file (editable .txt or .html).
+
+Replace placeholders dynamically with:
+
+Name
+
+Designation
+
+Company Name
+
+Email Subject:
+Subject: A Quick Hello
+
+Email Body:
+
+pgsql
+Copy
+Edit
+Dear [Name],
+
+I hope this message finds you in great health and high spirits.
+
+I just wanted to reach out and say hello. I trust everything is going well at [Company Name] in your role as [Designation]. I have a few things I’d love to share with you and would really appreciate the opportunity to connect whenever you have some time.
+
+Looking forward to hearing from you soon.
+
+Warm regards,  
+Sahil Vashisht  
+Product Owner
+Rate Limiting & Control:
+
+Must send 80 emails per minute max.
+
+After each email is sent, wait for 2 seconds before sending the next one (use setTimeout or async loops).
+
+If limit exceeds, skip or delay gracefully.
+
+Live Status Updates & Animation:
+
+After each mail is sent:
+
+Update UI status column.
+
+Play smooth square-to-tick animation.
+
+Show a toast or banner notification: "Email to [email] sent successfully!"
+
+Final Report Page or Section:
+
+Show:
+
+Total emails attempted
+
+Emails sent successfully ✅
+
+Emails failed ❌
+
+Include export option (CSV or view-only) for this report.
+
+📁 File/Folder Structure:
+/client – Frontend
+
+/server – Node.js backend with:
+
+/mailer – logic to send mail using NodeMailer
+
+/template – email template file(s)
+
+/utils/excelParser.js – Excel parsing logic
+
+/controllers – APIs for upload, send, report
+
+sample.xlsx – sample Excel file
+
+📌 Additional Features:
+Display error messages clearly if mail fails.
+
+Use loading spinners or progress indicators for email sending.
+
+Keep app responsive and mobile-friendly.
+
+Use .env for keeping Gmail creds safe during development.
+
+✅ Deliverables:
+Complete source code with README.md
+
+Sample Excel File
+
+Instructions on setting up Gmail App Password
+
+Screenshot/GIF showing UI animations
+
+Hosted demo (optional)
