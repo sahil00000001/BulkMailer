@@ -201,7 +201,7 @@ export default function CredentialsForm() {
             />
 
             {testResult && (
-              <Alert className={`mb-4 ${testResult.success ? "border-green-500 bg-green-50" : "border-red-500 bg-red-50"}`} variant="outline">
+              <Alert className={`mb-4 ${testResult.success ? "border-green-500 bg-green-50" : "border-red-500 bg-red-50"}`}>
                 <div className="flex items-center">
                   {testResult.success ? (
                     <CheckCircle2 className="h-4 w-4 text-green-600 mr-2" />
@@ -223,7 +223,7 @@ export default function CredentialsForm() {
             <div className="flex space-x-3">
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 onClick={testCredentials}
                 disabled={isTesting || form.formState.isSubmitting}
                 className="flex-1"
