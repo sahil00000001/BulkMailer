@@ -75,8 +75,15 @@ export class EmailSender {
       const info = await this.transporter.sendMail(mailOptions);
       console.log(`Email sent to ${recipient.email}: ${JSON.stringify(info)}`);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Failed to send email to ${recipient.email}:`, error);
+      
+      // Handle specific authentication errors
+      if (error.code === 'EAUTH') {
+        console.error('AUTHENTICATION ERROR: Please make sure you are using an App Password and not your regular Gmail password!');
+        console.error('Get an App Password at: https://myaccount.google.com/apppasswords');
+      }
+      
       return false;
     }
   }
