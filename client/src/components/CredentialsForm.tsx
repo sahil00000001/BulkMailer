@@ -16,7 +16,13 @@ import { credentialsSchema, CredentialsSchema } from "@/lib/validators";
 
 export default function CredentialsForm() {
   const { setCredentials, setCurrentStep } = useEmail();
+  const { toast } = useToast();
   const [showTooltip, setShowTooltip] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
 
   const form = useForm<CredentialsSchema>({
     resolver: zodResolver(credentialsSchema),
@@ -26,6 +32,62 @@ export default function CredentialsForm() {
       password: "",
     },
   });
+
+  async function testCredentials() {
+    try {
+      const formData = form.getValues();
+      // Validate first using zod
+      const result = credentialsSchema.safeParse(formData);
+      
+      if (!result.success) {
+        form.trigger();
+        return;
+      }
+      
+      setIsTesting(true);
+      setTestResult(null);
+      
+      const response = await fetch('/api/email/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ credentials: formData }),
+      });
+      
+      const data = await response.json();
+      
+      setTestResult({
+        success: response.ok,
+        message: data.message
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Success!",
+          description: "Gmail credentials verified successfully.",
+        });
+      } else {
+        toast({
+          title: "Authentication Failed",
+          description: data.message || "Failed to verify Gmail credentials. Check your App Password.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An error occurred while testing credentials.",
+        variant: "destructive"
+      });
+      setTestResult({
+        success: false,
+        message: "Connection error. Please try again."
+      });
+    } finally {
+      setIsTesting(false);
+    }
+  }
 
   function onSubmit(data: CredentialsSchema) {
     setCredentials(data);
@@ -138,12 +200,64 @@ export default function CredentialsForm() {
               )}
             />
 
-            <div className="flex justify-end">
-              <Button type="submit" className="flex items-center">
-                <ArrowRightIcon className="mr-2 h-4 w-4" />
-                Continue to Upload
+            {testResult && (
+              <Alert className={`mb-4 ${testResult.success ? "border-green-500 bg-green-50" : "border-red-500 bg-red-50"}`} variant="outline">
+                <div className="flex items-center">
+                  {testResult.success ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-600 mr-2" />
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-red-600 mr-2">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                  <AlertTitle className={testResult.success ? "text-green-800" : "text-red-800"}>
+                    {testResult.success ? "Connection Successful!" : "Connection Failed"}
+                  </AlertTitle>
+                </div>
+                <AlertDescription className={testResult.success ? "text-green-700" : "text-red-700"}>
+                  {testResult.message}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex space-x-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={testCredentials}
+                disabled={isTesting || form.formState.isSubmitting}
+                className="flex-1"
+              >
+                {isTesting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Testing Connection...
+                  </>
+                ) : (
+                  "Test Gmail Credentials"
+                )}
+              </Button>
+              
+              <Button type="submit" className="flex items-center flex-1">
+                {form.formState.isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    Continue to Upload
+                    <ArrowRightIcon className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </div>
+            
+            {!testResult?.success && (
+              <p className="text-xs text-center text-gray-500 mt-2">
+                We recommend testing your Gmail connection before proceeding
+              </p>
+            )}
           </form>
         </Form>
       </div>
