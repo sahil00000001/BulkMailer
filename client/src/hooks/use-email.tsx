@@ -135,7 +135,7 @@ export function EmailProvider({ children }: { children: ReactNode }) {
       }
       
       // Now connect to SSE stream to get updates
-      const eventSource = new EventSource(`/api/send/status?batchId=${batchId}`);
+      let eventSource = new EventSource(`/api/send/status?batchId=${batchId}`);
       
       // Handle connection open
       eventSource.onopen = () => {
@@ -151,7 +151,9 @@ export function EmailProvider({ children }: { children: ReactNode }) {
           case 'init':
             setSendingProgress(prev => ({
               ...prev,
-              total: data.totalEmails
+              total: data.totalEmails,
+              sent: data.sent || 0,
+              failed: data.failed || 0
             }));
             break;
             
@@ -187,6 +189,33 @@ export function EmailProvider({ children }: { children: ReactNode }) {
             }
             break;
             
+          // Add a periodic status update event
+          case 'status':
+            // Update progress without toasts
+            setSendingProgress(prev => ({
+              ...prev,
+              sent: data.sent,
+              failed: data.failed
+            }));
+            
+            // Update all recipients statuses
+            if (data.recipients) {
+              setRecipients(prev => {
+                const newRecipients = [...prev];
+                
+                // Update statuses based on received data
+                data.recipients.forEach((r: any) => {
+                  const index = newRecipients.findIndex(nr => nr.email === r.email);
+                  if (index !== -1) {
+                    newRecipients[index].status = r.status;
+                  }
+                });
+                
+                return newRecipients;
+              });
+            }
+            break;
+            
           case 'error':
             toast({
               title: "Error",
@@ -215,15 +244,43 @@ export function EmailProvider({ children }: { children: ReactNode }) {
         }
       };
       
-      eventSource.onerror = () => {
+      eventSource.onerror = (err) => {
+        console.error('SSE connection error:', err);
         toast({
           title: "Connection Error",
-          description: "Lost connection to server",
+          description: "Lost connection to server. The emails may still be sending in the background.",
           variant: "destructive"
         });
-        eventSource.close();
-        setIsSending(false);
+        
+        // Try to reconnect
+        setTimeout(() => {
+          try {
+            // Re-establish SSE connection
+            const newEventSource = new EventSource(`/api/send/status?batchId=${batchId}`);
+            eventSource.close();
+            eventSource = newEventSource;
+            
+            // Set up handlers again
+            eventSource.onopen = () => {
+              console.log('SSE connection re-established');
+              toast({
+                title: "Connection Restored",
+                description: "Reconnected to the email sending service"
+              });
+            };
+            
+            eventSource.onmessage = handleMessage;
+            eventSource.onerror = handleError;
+          } catch (e) {
+            console.error('Failed to reconnect SSE:', e);
+            setIsSending(false);
+          }
+        }, 3000);
       };
+      
+      // Define handlers as named functions for reuse
+      const handleMessage = eventSource.onmessage;
+      const handleError = eventSource.onerror;
       
     } catch (error) {
       setIsSending(false);

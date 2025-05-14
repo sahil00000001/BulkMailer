@@ -40,7 +40,7 @@ export const getEmailTemplate = (): string => {
       
       <div class="signature">
         <p>Warm regards,</p>
-        <p>Sahil Vashisht</p>
+        <p>[SENDER_NAME]</p>
         <p>Product Owner</p>
       </div>
     </div>

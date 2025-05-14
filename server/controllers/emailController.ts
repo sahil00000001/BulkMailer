@@ -163,9 +163,32 @@ export const emailController = {
         return res.status(400).json({ message: 'Batch ID is required' });
       }
       
-      const session = activeSessions.get(batchId as string);
+      // Get the session or create a temporary one if doesn't exist
+      let session = activeSessions.get(batchId as string);
+      
       if (!session) {
-        return res.status(404).json({ message: 'Email sending session not found' });
+        // Try to create a temporary session based on the batch data
+        const batch = await storage.getBatch(batchId as string);
+        if (!batch) {
+          return res.status(404).json({ message: 'Batch not found' });
+        }
+        
+        const recipients = await storage.getRecipientsByBatchId(batchId as string);
+        const sent = recipients.filter(r => r.status === 'sent').length;
+        const failed = recipients.filter(r => r.status === 'failed').length;
+        
+        // Create temporary session
+        session = {
+          batchId: batchId as string,
+          credentials: null,
+          startTime: new Date(),
+          inProgress: sent + failed < recipients.length,
+          totalEmails: recipients.length,
+          successCount: sent,
+          failureCount: failed
+        };
+        
+        activeSessions.set(batchId as string, session);
       }
       
       // Create Server-Sent Events connection
@@ -191,6 +214,21 @@ export const emailController = {
           return;
         }
         
+        // Get latest recipient status
+        const recipients = await storage.getRecipientsByBatchId(sessionId);
+        
+        // Send status update periodically
+        res.write(`data: ${JSON.stringify({
+          type: 'status',
+          sent: currentSession.successCount,
+          failed: currentSession.failureCount,
+          total: currentSession.totalEmails,
+          recipients: recipients.map(r => ({
+            email: r.email,
+            status: r.status
+          }))
+        })}\n\n`);
+        
         // Check if completed
         if (!currentSession.inProgress) {
           // Send completion event
@@ -209,7 +247,7 @@ export const emailController = {
           clearInterval(interval);
           res.end();
         }
-      }, 1000);
+      }, 2000);
       
       // Handle client disconnect
       req.on('close', () => {
@@ -218,92 +256,6 @@ export const emailController = {
     } catch (error) {
       console.error('Error in email status stream:', error);
       return res.status(500).json({ message: 'Failed to track email sending' });
-    }
-  },
-  
-  // Internal method to process emails
-  processEmails: async (batchId: string, credentials: any, recipients: any[]) => {
-    try {
-      // Initialize email sender with credentials and template
-      const emailSender = new EmailSender(credentials, getEmailTemplate());
-      
-      let successCount = 0;
-      let failureCount = 0;
-      
-      // Process emails one by one with delay
-      for (let i = 0; i < recipients.length; i++) {
-        try {
-          const recipient = recipients[i];
-          
-          console.log(`Sending email to ${recipient.email}...`);
-          
-          // Send email
-          const success = await emailSender.sendEmail({
-            name: recipient.name,
-            email: recipient.email,
-            designation: recipient.designation,
-            company: recipient.company,
-            status: recipient.status
-          });
-          
-          // Update recipient status
-          const newStatus = success ? 'sent' : 'failed';
-          await storage.updateRecipientStatus(recipient.id, newStatus);
-          
-          // Update batch count
-          await storage.updateBatchSentCount(batchId, success);
-          
-          if (success) {
-            successCount++;
-            console.log(`Email to ${recipient.email} sent successfully`);
-          } else {
-            failureCount++;
-            console.log(`Failed to send email to ${recipient.email}`);
-          }
-          
-          // Update session
-          const session = activeSessions.get(batchId);
-          if (session) {
-            session.successCount = successCount;
-            session.failureCount = failureCount;
-            activeSessions.set(batchId, session);
-          }
-          
-          // Wait for 2 seconds before sending the next email (rate limiting)
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        } catch (error) {
-          console.error(`Error sending email to ${recipients[i].email}:`, error);
-          
-          // Update batch with failure
-          await storage.updateBatchSentCount(batchId, false);
-          failureCount++;
-          
-          // Update session
-          const session = activeSessions.get(batchId);
-          if (session) {
-            session.failureCount = failureCount;
-            activeSessions.set(batchId, session);
-          }
-        }
-      }
-      
-      // Mark session as completed
-      const session = activeSessions.get(batchId);
-      if (session) {
-        session.inProgress = false;
-        activeSessions.set(batchId, session);
-      }
-      
-      console.log(`Email sending completed for batch ${batchId}. Success: ${successCount}, Failed: ${failureCount}`);
-    } catch (error) {
-      console.error(`Error in email sending process for batch ${batchId}:`, error);
-      
-      // Mark session as completed
-      const session = activeSessions.get(batchId);
-      if (session) {
-        session.inProgress = false;
-        activeSessions.set(batchId, session);
-      }
     }
   },
   
