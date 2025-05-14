@@ -35,6 +35,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get recipients for a batch
   app.get('/api/recipients/:batchId', uploadController.getRecipients);
 
+  // Test Gmail credentials
+  app.post('/api/email/test', emailController.testCredentials);
+
   // Start email sending process
   app.post('/api/send', emailController.initiateSendEmails);
 

@@ -104,6 +104,44 @@ async function processEmails(batchId: string, credentials: any, recipients: any[
 }
 
 export const emailController = {
+  // Test email credentials before sending
+  testCredentials: async (req: Request, res: Response) => {
+    try {
+      const { credentials } = req.body;
+      
+      console.log('Testing Gmail credentials...');
+      
+      // Validate credentials
+      const validatedCredentials = credentialsSchema.parse(credentials);
+      
+      // Initialize email sender with credentials and a simple template
+      const emailSender = new EmailSender(validatedCredentials, '<p>This is a test email.</p>');
+      
+      // Just verify the transporter without sending an actual email
+      const isVerified = await emailSender['verifyTransporter']();
+      
+      if (isVerified) {
+        return res.status(200).json({ 
+          success: true,
+          message: 'Gmail credentials verified successfully! You can now send emails.' 
+        });
+      } else {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Failed to verify Gmail credentials. Make sure you are using an App Password, not your regular Gmail password.',
+          details: 'Gmail blocks regular passwords for security reasons. Please generate an App Password from your Google Account.'
+        });
+      }
+    } catch (error: any) {
+      console.error('Error testing credentials:', error);
+      return res.status(500).json({ 
+        success: false,
+        message: error.message || 'Failed to test credentials',
+        details: 'There was an error testing your Gmail credentials.' 
+      });
+    }
+  },
+  
   // Initialize email sending process
   initiateSendEmails: async (req: Request, res: Response) => {
     try {

@@ -38,8 +38,27 @@ export class EmailSender {
       console.log('SMTP connection verified successfully');
       this.isTransporterVerified = true;
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('SMTP verification failed:', error);
+      
+      // Provide more helpful error messages based on error type
+      if (error.code === 'EAUTH') {
+        console.error("\n==========================================================");
+        console.error("GMAIL AUTHENTICATION ERROR");
+        console.error("==========================================================");
+        console.error("Your Gmail credentials were rejected. This is likely because:");
+        console.error("1. You are using your regular Gmail password instead of an App Password");
+        console.error("2. Your App Password is incorrect or has been revoked");
+        console.error("\nTo fix this:");
+        console.error("- Go to https://myaccount.google.com/apppasswords");
+        console.error("- Make sure 2-Step Verification is enabled");
+        console.error("- Generate a new App Password specifically for this application");
+        console.error("- Enter the 16-character App Password without spaces");
+        console.error("==========================================================\n");
+      } else if (error.code === 'ESOCKET') {
+        console.error("Failed to connect to Gmail's SMTP server. Please check your internet connection.");
+      }
+      
       return false;
     }
   }
