@@ -35,8 +35,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get recipients for a batch
   app.get('/api/recipients/:batchId', uploadController.getRecipients);
 
-  // Send emails
-  app.post('/api/send', emailController.sendEmails);
+  // Start email sending process
+  app.post('/api/send', emailController.initiateSendEmails);
+
+  // Get email sending status (SSE)
+  app.get('/api/send/status', emailController.emailSendingStatus);
 
   // Get batch summary
   app.get('/api/summary/:batchId', emailController.getBatchSummary);

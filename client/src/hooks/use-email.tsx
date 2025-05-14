@@ -117,12 +117,35 @@ export function EmailProvider({ children }: { children: ReactNode }) {
     setCurrentStep(3);
 
     try {
-      // Use EventSource for server-sent events
-      const eventSource = new EventSource(`/api/send?batchId=${batchId}`);
+      // Make a POST request to initiate email sending
+      const response = await fetch('/api/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          credentials,
+          batchId
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to initialize email sending');
+      }
+      
+      // Now connect to SSE stream to get updates
+      const eventSource = new EventSource(`/api/send/status?batchId=${batchId}`);
+      
+      // Handle connection open
+      eventSource.onopen = () => {
+        console.log('SSE connection established');
+      };
       
       // Handle different event types
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        console.log('SSE message received:', data);
         
         switch (data.type) {
           case 'init':
